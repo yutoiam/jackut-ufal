@@ -11,7 +11,7 @@ Utilize o javac para compilar o código-fonte apontando para a biblioteca do Eas
 
 "javac -cp "lib/easyaccept.jar" -sourcepath src -d out src/Main.java src/br/ufal/ic/p2/jackut/Facade.java"
 
-3. Execução (Testes)
+2. Execução (Testes)
 Após a compilação, execute a classe Main para rodar a bateria de testes:
 
 No Windows:
