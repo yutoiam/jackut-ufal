@@ -1,6 +1,6 @@
 package br.ufal.ic.p2.jackut.controller;
 
-import br.edu.ufcg.ccc.jackut.exception.*;
+import br.ufal.ic.p2.jackut.exception.*;
 import br.ufal.ic.p2.jackut.exception.AmigoJaAdicionadoAguardandoException;
 import br.ufal.ic.p2.jackut.exception.AmigoJaAdicionadoException;
 import br.ufal.ic.p2.jackut.exception.UsuarioNaoCadastradoException;

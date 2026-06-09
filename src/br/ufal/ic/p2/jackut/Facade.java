@@ -1,7 +1,7 @@
 package br.ufal.ic.p2.jackut;
 
-import br.edu.ufcg.ccc.jackut.controller.*;
-import br.edu.ufcg.ccc.jackut.exception.*;
+import br.ufal.ic.p2.jackut.controller.*;
+import br.ufal.ic.p2.jackut.exception.*;
 import br.ufal.ic.p2.jackut.controller.*;
 import br.ufal.ic.p2.jackut.exception.JackutException;
 

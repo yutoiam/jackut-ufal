@@ -1,6 +1,6 @@
 package br.ufal.ic.p2.jackut.controller;
 
-import br.edu.ufcg.ccc.jackut.exception.*;
+import br.ufal.ic.p2.jackut.exception.*;
 import br.ufal.ic.p2.jackut.exception.LoginOuSenhaInvalidosException;
 import br.ufal.ic.p2.jackut.exception.UsuarioNaoCadastradoException;
 import br.ufal.ic.p2.jackut.model.Usuario;
