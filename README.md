@@ -1,83 +1,22 @@
-# Jackut - Rede Social de Relacionamentos
-O Jackut é um sistema de rede social inspirado no Orkut, permitindo que usuários criem contas, montem perfis, adicionem amigos e troquem recados entre si. Este projeto foi desenvolvido como parte da disciplina de *Programação 2*, com foco total em **Programação Orientada a Objetos (POO)** e a **linguagem de programação Java**.
+# Jackut 🚀
 
-## Funcionalidades (User Stories)
-O sistema foi construído de forma incremental, atendendo aos seguintes requisitos:
+Um sistema inspirado no clássico Orkut, desenvolvido em Java como parte da disciplina de Programação II. O projeto foca em boas práticas de programação orientada a objetos, tratamento de exceções customizadas e aplicação do padrão de projeto **Facade**.
 
-- **US1 - Gestão de Contas**: Criação de conta com login, senha e nome, e autenticação via sessão com ID único. ✅
-- **US2 - Edição de Perfil**: Criação e edição livre de atributos de perfil (descrição, cidade natal, estado civil, aniversário, entre outros). ✅
-- **US3 - Sistema de Amizades**: Adição de amigos com convite e aceite bilateral; a amizade só é confirmada quando ambos os lados se adicionam. ✅
-- **US4 - Recados**: Envio e leitura de recados entre usuários em fila FIFO por destinatário. ✅
+## 📁 Estrutura do Repositório
 
-Cada US possui dois scripts de teste: o `_1` executa os cenários principais e o `_2` valida a persistência dos dados após encerramento do sistema.
+O projeto está organizado da seguinte forma na raiz:
 
-## Arquitetura e Padrões de Projeto
-O projeto segue uma arquitetura em camadas com foco em encapsulamento e responsabilidade única:
+- `src/`: Contém todo o código-fonte do sistema (Entidades, Controllers, Fachada e Exceções).
+- `lib/`: Bibliotecas externas utilizadas no projeto (como o framework EasyAccept).
+- `testes/`: Casos e scripts de testes automatizados (User Stories).
+- `relatorio-milestone1.pdf`: Documentação e relatório da primeira entrega.
 
-- **Padrão Facade (Fachada)**: A classe `Facade` centraliza todas as chamadas do EasyAccept, atuando como um despachante puro sem nenhuma lógica de negócio.
-- **Rich Domain Model**: A entidade `Usuario` é responsável pela própria integridade; valida seus dados na construção, encapsula suas coleções e lança exceções diretamente ao detectar estados inválidos.
-- **Controlador**: Orquestra o fluxo de negócio, gerencia sessões ativas e cuida da persistência em disco.
-- **Exceções Atômicas**: Cada violação de regra de negócio possui sua própria classe de exceção no pacote `exceptions`, todas herdando de `JackutException`, garantindo mensagens exatas e rastreabilidade.
+## 🛠️ Tecnologias Utilizadas
 
-## Estrutura do Projeto
-```plaintext
-src/
-├── entities/
-│   └── Usuario.java               # modelo rico: perfil, amizades e recados
-├── exceptions/
-│   ├── JackutException.java       # exceção base do domínio
-│   ├── AtributoNaoPreenchidoException.java
-│   ├── AutoAmizadeException.java
-│   ├── AutoRecadoException.java
-│   ├── ContaJaExisteException.java
-│   ├── ConvitePendenteException.java
-│   ├── LoginInvalidoException.java
-│   ├── LoginOuSenhaInvalidosException.java
-│   ├── SemRecadosException.java
-│   ├── SenhaInvalidaException.java
-│   ├── UsuarioJaAmigoException.java
-│   └── UsuarioNaoCadastradoException.java
-├── Controlador.java               # orquestrador: sessões, fluxo e persistência
-├── Facade.java                    # porta de entrada do EasyAccept
-└── Main.java                      # executor dos testes em cascata
-testes/                            # scripts de teste (.txt) fornecidos pelo docente
-lib/
-└── easyaccept.jar                 # biblioteca de testes de aceitação
-data/
-└── dados.dat                      # persistência (criada automaticamente)
-```
+- **Java** (Ambiente de desenvolvimento configurado no IntelliJ IDEA)
+- **EasyAccept** (Framework para testes de aceitação baseados em arquivos de texto)
+- **Git & GitHub** (Controle de versão)
 
-## Como executar
-### Pré-requisitos
-- JDK 11 ou superior instalado
-- Arquivo `easyaccept.jar` em `lib/`
+## 🧪 Como Rodar os Testes de Aceitação
 
-### Compilação
-```bash
-# Windows
-javac -encoding UTF-8 -cp "lib\easyaccept.jar" -d bin src\exceptions\*.java src\entities\*.java src\*.java
-```
-
-### Execução dos testes
-Para rodar a bateria completa de testes através da classe `Main`:
-```bash
-# Windows
-java -cp "bin;lib\easyaccept.jar" Main
-```
-```bash
-# Linux/macOS
-java -cp "bin:lib/easyaccept.jar" Main
-```
-
-Para rodar um teste individualmente:
-```bash
-java "-Dfile.encoding=ISO-8859-1" -cp "bin;lib\easyaccept.jar" easyaccept.EasyAccept Facade testes\us1_1.txt
-```
-
-## Qualidade e Testes
-O projeto foi validado utilizando a ferramenta EasyAccept, garantindo que 100% das regras de negócio descritas nos scripts de teste fossem atendidas; incluindo tratamento correto de exceções, persistência entre execuções e formatos de saída exatos.
-
-## Autora e Contato
-| Nome | Contato |
-| ---- | ------- |
-| Laura Mainero | lblrm@ic.ufal.br |
+Os testes de aceitação estão mapeados na pasta `testes/` através de arquivos de script `.txt`. Para executá-los via terminal utilizando o EasyAccept, certifique-se de compilar as classes e executar o arquivo `Main.java` integrado ao jar da biblioteca.
