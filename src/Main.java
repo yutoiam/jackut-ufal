@@ -1,54 +1,89 @@
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Ponto de entrada da aplicação Jackut.
- *
- * <p>Esta classe foi automatizada para rodar todos os scripts de teste
- * do EasyAccept sequencialmente, isolando cada execução num processo
- * separado. Isso evita que o comando 'quit' encerre a bateria de testes
- * prematuramente e garante o fluxo correto da persistência de dados.</p>
- *
- * @author Yuri Raphael Mota De Araujo Barbosa
+ * Classe principal responsável pela inicialização e execução das baterias
+ * de testes de aceitação do sistema através do framework EasyAccept.
  */
 public class Main {
 
+    private static final String FACADE = "Facade";
+    private static final String ARQUIVO_USUARIOS = "jackut-main" + File.separator + "data" + File.separator + "usuarios.dat";
+    private static final String ARQUIVO_COMUNIDADES = "jackut-main" + File.separator + "data" + File.separator + "comunidades.dat";
+
+    private static final String[][] TESTES = {
+            {"testes/us1_1.txt", "testes/us1_2.txt"},
+            {"testes/us2_1.txt", "testes/us2_2.txt"},
+            {"testes/us3_1.txt", "testes/us3_2.txt"},
+            {"testes/us4_1.txt", "testes/us4_2.txt"},
+            {"testes/us5_1.txt", "testes/us5_2.txt"},
+            {"testes/us6_1.txt", "testes/us6_2.txt"},
+            {"testes/us7_1.txt", "testes/us7_2.txt"},
+            {"testes/us8_1.txt", "testes/us8_2.txt"},
+            {"testes/us9_1.txt", "testes/us9_2.txt"}
+    };
+
+    /**
+     * Método principal que dispara a checagem automática dos scripts do sistema.
+     *
+     * @param args Parâmetros de linha de comando.
+     * @throws Exception Se ocorrer alguma falha estrutural no lançamento dos testes.
+     */
     public static void main(String[] args) throws Exception {
-        // Lista de todos os testes na ordem correta
-        String[] arquivosDeTeste = {
-                "tests/us1_1.txt", "tests/us1_2.txt",
-                "tests/us2_1.txt", "tests/us2_2.txt",
-                "tests/us3_1.txt", "tests/us3_2.txt",
-                "tests/us4_1.txt", "tests/us4_2.txt"
-        };
+        File pastaDoCodigo = new File(System.getProperty("user.dir") + File.separator + "jackut-main");
 
-        // Captura os caminhos do Java e do projeto dinamicamente
-        String separador = File.separator;
-        String javaPath = System.getProperty("java.home") + separador + "bin" + separador + "java";
-        String classPath = System.getProperty("java.class.path");
-
-        for (String teste : arquivosDeTeste) {
-            System.out.println("\n==================================================");
-            System.out.println("EXECUTANDO TESTE: " + teste);
-            System.out.println("==================================================");
-
-            // Monta o comando de terminal para executar o EasyAccept com o novo pacote
-            ProcessBuilder builder = new ProcessBuilder(
-                    javaPath,
-                    "-Dfile.encoding=ISO-8859-1", // Para conseguir ler as acentuações corretamente
-                    "-cp", classPath,
-                    "easyaccept.EasyAccept",
-                    "br.ufal.ic.p2.jackut.Facade", // Caminho padrão conforme o bootstrap
-                    teste
-            );
-
-            // Redireciona a saída do EasyAccept para o console do IntelliJ
-            builder.inheritIO();
-
-            // Inicia o processo isolado e espera que termine antes de ir para o próximo
-            Process processo = builder.start();
-            processo.waitFor();
+        if (!pastaDoCodigo.exists()) {
+            pastaDoCodigo = new File(System.getProperty("user.dir"));
         }
 
-        System.out.println("\nBATERIA DE TESTES CONCLUÍDA COM SUCESSO!");
+        for (String[] par : TESTES) {
+            new File(pastaDoCodigo, "data" + File.separator + "usuarios.dat").delete();
+            new File(pastaDoCodigo, "data" + File.separator + "comunidades.dat").delete();
+
+            for (String script : par) {
+                rodar(pastaDoCodigo, script);
+            }
+        }
+    }
+
+    /**
+     * Inicia o sub-processo Java que invoca a biblioteca externa EasyAccept
+     * com os classpaths corretos para testar a Facade.
+     *
+     * @param pastaDoCodigo A pasta raiz do projeto.
+     * @param script O caminho do script de teste em texto a ser interpretado.
+     * @throws Exception Se houver problemas na submissão do processo ao sistema operacional.
+     */
+    private static void rodar(File pastaDoCodigo, String script) throws Exception {
+        String cpAtual = System.getProperty("java.class.path");
+        String easyAcceptJar = new File(pastaDoCodigo, "lib" + File.separator + "easyaccept.jar").getAbsolutePath();
+        String cpCompleto = cpAtual + File.pathSeparator + easyAcceptJar;
+
+        String scriptAbsoluto = new File(pastaDoCodigo, script).getAbsolutePath();
+
+        List<String> cmd = new ArrayList<>();
+        cmd.add("java");
+        cmd.add("-Dfile.encoding=ISO-8859-1");
+        cmd.add("-cp");
+        cmd.add(cpCompleto);
+        cmd.add("easyaccept.EasyAccept");
+        cmd.add(FACADE);
+        cmd.add(scriptAbsoluto);
+
+        Process p = new ProcessBuilder(cmd)
+                .directory(pastaDoCodigo)
+                .redirectErrorStream(true)
+                .start();
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                System.out.println(linha);
+            }
+        }
+        p.waitFor();
     }
 }
