@@ -1,6 +1,6 @@
 # Jackut
 
-Um sistema inspirado no clássico Orkut, desenvolvido em Java como parte da disciplina de Programação II. O projeto foca em boas práticas de programação orientada a objetos, tratamento de exceções customizadas e aplicação do padrão de projeto **Facade**.
+Um sistema inspirado no clássico Orkut, desenvolvido em Java como parte da disciplina de Programação II. O projeto foca em boas práticas de programação orientada a objetos, tratamento de exceções customizadas e aplicação do padrão de projeto **br.ufal.ic.p2.jackut.Facade**.
 
 ## Estrutura do Repositório
 
@@ -19,4 +19,4 @@ O projeto está organizado da seguinte forma na raiz:
 
 ## Como Rodar os Testes de Aceitação
 
-Os testes de aceitação estão mapeados na pasta `testes/` através de arquivos de script `.txt`. Para executá-los via terminal utilizando o EasyAccept, certifique-se de compilar as classes e executar o arquivo `Main.java` integrado ao jar da biblioteca.
+Os testes de aceitação estão mapeados na pasta `testes/` através de arquivos de script `.txt`. Para executá-los via terminal utilizando o EasyAccept, certifique-se de compilar as classes e executar o arquivo `br.ufal.ic.p2.jackut.Main.java` integrado ao jar da biblioteca.

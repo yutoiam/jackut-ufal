@@ -1,152 +1,349 @@
 package br.ufal.ic.p2.jackut;
 
-import br.ufal.ic.p2.jackut.controller.*;
-import br.ufal.ic.p2.jackut.exception.*;
-import br.ufal.ic.p2.jackut.controller.*;
-import br.ufal.ic.p2.jackut.exception.JackutException;
+import br.ufal.ic.p2.jackut.controllers.ComunidadeController;
+import br.ufal.ic.p2.jackut.controllers.PersistenciaController;
+import br.ufal.ic.p2.jackut.controllers.SessaoController;
+import br.ufal.ic.p2.jackut.controllers.UsuarioController;
+import br.ufal.ic.p2.jackut.entities.Comunidade;
+import br.ufal.ic.p2.jackut.entities.Usuario;
 
-import java.io.IOException;
+import java.util.Map;
 
 /**
- * Fachada do sistema Jackut.
- *
- * <p>Esta classe atua como o único ponto de comunicação entre a biblioteca de testes
- * EasyAccept e a lógica de negócio do sistema. Ela não possui lógica de domínio,
- * delegando todas as chamadas aos controladores responsáveis.</p>
+ * Ponto de entrada (Fachada) do sistema Jackut.
+ * Centraliza a comunicação entre a interface (ou suíte de testes do EasyAccept)
+ * e as lógicas de negócio dos controladores. Esta classe aplica o padrão arquitetural br.ufal.ic.p2.jackut.Facade,
+ * mascarando a complexidade interna dos subsistemas.
  */
 public class Facade {
 
-    private final PersistenciaController persistencia;
+    private final SessaoController sessaoController;
+    private final UsuarioController usuarioController;
+    private final ComunidadeController comunidadeController;
+    private final PersistenciaController persistenciaController;
+
+    private final Map<String, Usuario> mapaUsuarios;
+    private final Map<String, Comunidade> mapaComunidades;
 
     /**
-     * Construtor padrão da Facade.
-     * Inicializa o controlador de persistência e recarrega os dados do sistema
-     * previamente salvos em disco.
+     * Construtor da br.ufal.ic.p2.jackut.Facade.
+     * Responsável por inicializar a persistência, resgatar os dados salvos
+     * e injetar as dependências nos controladores.
      */
     public Facade() {
-        this.persistencia = new PersistenciaController();
-        this.persistencia.carregarSistema();
+        this.persistenciaController = new PersistenciaController();
+
+        this.mapaUsuarios = persistenciaController.carregarUsuarios();
+        this.mapaComunidades = persistenciaController.carregarComunidades();
+
+        this.usuarioController = new UsuarioController(this.mapaUsuarios);
+        this.comunidadeController = new ComunidadeController(this.mapaComunidades, this.usuarioController);
+        this.sessaoController = new SessaoController();
     }
 
     /**
-     * Apaga todos os dados mantidos no sistema.
+     * Remove todos os dados da memória e do disco, reiniciando o sistema completamente.
      */
     public void zerarSistema() {
-        persistencia.zerarSistema();
+        this.mapaUsuarios.clear();
+        this.mapaComunidades.clear();
+        this.sessaoController.zerarSessoes();
+        this.persistenciaController.limparDados();
     }
 
     /**
-     * Grava o cadastro em arquivo e encerra o programa.
-     *
-     * @throws IOException caso ocorra um erro ao salvar os dados em disco
+     * Persiste os dados na memória para os arquivos físicos de disco de forma segura.
      */
-    public void encerrarSistema() throws IOException {
-        persistencia.encerrarSistema();
+    public void encerrarSistema() {
+        this.persistenciaController.salvarDados(this.mapaUsuarios, this.mapaComunidades);
     }
 
     /**
-     * Cria um usuário com os dados da conta fornecidos.
+     * Delega a criação de um novo usuário para o sistema.
      *
-     * @param login identificador único do usuário
-     * @param senha senha de acesso do usuário
-     * @param nome nome de exibição do usuário
-     * @throws JackutException caso os dados sejam inválidos ou o login já exista
+     * @param login Login do novo usuário.
+     * @param senha Senha de acesso.
+     * @param nome Nome de exibição.
      */
-    public void criarUsuario(String login, String senha, String nome) throws JackutException {
-        UsuarioController.getInstance().criarUsuario(login, senha, nome);
+    public void criarUsuario(String login, String senha, String nome) {
+        usuarioController.criarUsuario(login, senha, nome);
     }
 
     /**
-     * Abre uma sessão para um usuário com o login e a senha fornecidos.
+     * Inicia uma sessão de usuário validando suas credenciais.
      *
-     * @param login identificador único do usuário
-     * @param senha senha de acesso do usuário
-     * @return identificador (ID) da sessão aberta
-     * @throws JackutException caso o login ou senha sejam inválidos
+     * @param login Login fornecido na tentativa de autenticação.
+     * @param senha Senha fornecida na tentativa de autenticação.
+     * @return O ID único (UUID) correspondente à sessão gerada.
      */
-    public String abrirSessao(String login, String senha) throws JackutException {
-        return SessaoController.getInstance().abrirSessao(login, senha);
+    public String abrirSessao(String login, String senha) {
+        if (login == null || login.isEmpty() || senha == null || senha.isEmpty()) {
+            throw new br.ufal.ic.p2.jackut.exceptions.LoginOuSenhaInvalidosException();
+        }
+        try {
+            Usuario usuario = usuarioController.buscarUsuario(login);
+            if (!usuario.verificarSenha(senha)) {
+                throw new br.ufal.ic.p2.jackut.exceptions.LoginOuSenhaInvalidosException();
+            }
+            return sessaoController.criarSessao(login);
+        } catch (br.ufal.ic.p2.jackut.exceptions.UsuarioNaoCadastradoException e) {
+            throw new br.ufal.ic.p2.jackut.exceptions.LoginOuSenhaInvalidosException();
+        }
     }
 
     /**
-     * Retorna o valor de um atributo armazenado no perfil do usuário.
+     * Remove todos os dados referentes a um usuário autenticado.
      *
-     * @param login identificador único do usuário
-     * @param atributo nome do atributo a ser consultado
-     * @return valor do atributo correspondente
-     * @throws JackutException caso o usuário não exista ou o atributo não esteja preenchido
+     * @param id O identificador da sessão ativa.
      */
-    public String getAtributoUsuario(String login, String atributo) throws JackutException {
-        return UsuarioController.getInstance().getAtributoUsuario(login, atributo);
+    public void removerUsuario(String id) {
+        String login = sessaoController.getLoginDaSessao(id);
+        comunidadeController.removerRastrosDeUsuario(login);
+        usuarioController.removerUsuario(login);
+        sessaoController.removerSessao(id);
     }
 
     /**
-     * Modifica o valor de um atributo do perfil de um usuário.
+     * Retorna o valor de um atributo específico do perfil.
      *
-     * @param id identificador da sessão válida do usuário
-     * @param atributo nome do atributo a ser modificado ou criado
-     * @param valor novo valor a ser atribuído
-     * @throws JackutException caso a sessão seja inválida ou ocorra erro na edição
+     * @param login O login do usuário a ser consultado.
+     * @param atributo O nome do atributo (ex: "nome").
+     * @return O valor armazenado para o atributo requisitado.
      */
-    public void editarPerfil(String id, String atributo, String valor) throws JackutException {
-        String login = SessaoController.getInstance().resolverLoginDaSessao(id);
-        UsuarioController.getInstance().editarPerfil(login, atributo, valor);
+    public String getAtributoUsuario(String login, String atributo) {
+        return usuarioController.buscarUsuario(login).getAtributo(atributo);
     }
 
     /**
-     * Adiciona um amigo ao usuário com a sessão especificada.
+     * Modifica o valor de um atributo no perfil do usuário logado.
      *
-     * @param id identificador da sessão válida do usuário que está enviando o convite
-     * @param amigo login do usuário a ser adicionado como amigo
-     * @throws JackutException caso a sessão seja inválida, o usuário não exista, ou a regra de amizade seja violada
+     * @param id O identificador da sessão ativa.
+     * @param atributo O nome do atributo a ser modificado.
+     * @param valor O novo valor para o atributo.
      */
-    public void adicionarAmigo(String id, String amigo) throws JackutException {
-        AmizadeController.getInstance().adicionarAmigo(id, amigo);
+    public void editarPerfil(String id, String atributo, String valor) {
+        String login = sessaoController.getLoginDaSessao(id);
+        usuarioController.buscarUsuario(login).setAtributo(atributo, valor);
     }
 
     /**
-     * Verifica se dois usuários possuem vínculo de amizade confirmado.
+     * Adiciona ou envia convite de amizade para outro usuário do sistema.
      *
-     * @param login identificador do primeiro usuário
-     * @param amigo identificador do segundo usuário
-     * @return "true" se os usuários são amigos, "false" caso contrário
-     * @throws JackutException caso algum dos usuários não esteja cadastrado
+     * @param id O identificador da sessão ativa.
+     * @param amigo O login do usuário que se deseja ter como amigo.
      */
-    public String ehAmigo(String login, String amigo) throws JackutException {
-        return AmizadeController.getInstance().ehAmigo(login, amigo);
+    public void adicionarAmigo(String id, String amigo) {
+        String login = sessaoController.getLoginDaSessao(id);
+        usuarioController.adicionarAmigo(login, amigo);
     }
 
     /**
-     * Retorna a lista formatada de amigos de um usuário específico.
+     * Verifica se os dois usuários informados possuem vínculo de amizade.
      *
-     * @param login identificador único do usuário
-     * @return string formatada contendo os logins dos amigos
-     * @throws JackutException caso o usuário não esteja cadastrado
+     * @param login O login do usuário base.
+     * @param amigo O login do alvo da amizade.
+     * @return true se forem amigos, false caso contrário.
      */
-    public String getAmigos(String login) throws JackutException {
-        return AmizadeController.getInstance().getAmigos(login);
+    public boolean ehAmigo(String login, String amigo) {
+        try { return usuarioController.buscarUsuario(login).ehAmigo(amigo); } catch (Exception e) { return false; }
     }
 
     /**
-     * Envia um recado para o destinatário especificado.
+     * Retorna todos os amigos de um determinado usuário, no formato de string de conjunto.
      *
-     * @param id identificador da sessão válida do usuário remetente
-     * @param destinatario login do usuário que receberá o recado
-     * @param recado texto contendo a mensagem a ser enviada
-     * @throws JackutException caso a sessão ou destinatário sejam inválidos
+     * @param login O login do usuário pesquisado.
+     * @return Uma string contendo os logins formatados, ex: "{joao,maria}".
      */
-    public void enviarRecado(String id, String destinatario, String recado) throws JackutException {
-        RecadoController.getInstance().enviarRecado(id, destinatario, recado);
+    public String getAmigos(String login) {
+        return "{" + String.join(",", usuarioController.buscarUsuario(login).getAmigos()) + "}";
     }
 
     /**
-     * Retorna o primeiro recado da fila de recados do usuário.
+     * Envia um recado privado.
      *
-     * @param id identificador da sessão válida do usuário
-     * @return texto do recado mais antigo não lido
-     * @throws JackutException caso a sessão seja inválida ou não existam recados
+     * @param id O identificador da sessão do remetente.
+     * @param destinatario O login de quem vai receber.
+     * @param recado O texto a ser enviado.
      */
-    public String lerRecado(String id) throws JackutException {
-        return RecadoController.getInstance().lerRecado(id);
+    public void enviarRecado(String id, String destinatario, String recado) {
+        String remetente = sessaoController.getLoginDaSessao(id);
+        usuarioController.enviarRecado(remetente, destinatario, recado);
+    }
+
+    /**
+     * Retira e lê o próximo recado privado da caixa de entrada do usuário logado.
+     *
+     * @param id O identificador da sessão ativa.
+     * @return O conteúdo em texto do recado lido.
+     */
+    public String lerRecado(String id) {
+        String login = sessaoController.getLoginDaSessao(id);
+        return usuarioController.buscarUsuario(login).lerProximoRecado();
+    }
+
+    /**
+     * Cria uma nova comunidade.
+     *
+     * @param id O identificador da sessão do usuário criador (futuro dono).
+     * @param nome O nome da comunidade.
+     * @param descricao O objetivo da comunidade.
+     */
+    public void criarComunidade(String id, String nome, String descricao) {
+        String dono = sessaoController.getLoginDaSessao(id);
+        comunidadeController.criarComunidade(dono, nome, descricao);
+    }
+
+    /**
+     * Retorna a descrição de uma comunidade específica.
+     *
+     * @param nome O nome da comunidade.
+     * @return A descrição desta.
+     */
+    public String getDescricaoComunidade(String nome) {
+        return comunidadeController.getDescricaoComunidade(nome);
+    }
+
+    /**
+     * Retorna o dono de uma comunidade específica.
+     *
+     * @param nome O nome da comunidade.
+     * @return O login do usuário dono.
+     */
+    public String getDonoComunidade(String nome) {
+        return comunidadeController.getDonoComunidade(nome);
+    }
+
+    /**
+     * Retorna os membros cadastrados na comunidade especificada.
+     *
+     * @param nome O nome da comunidade.
+     * @return A listagem de logins dos membros em formato de texto "{...}".
+     */
+    public String getMembrosComunidade(String nome) {
+        return comunidadeController.getMembrosComunidade(nome);
+    }
+
+    /**
+     * Permite ao usuário logado ingressar em uma comunidade já existente.
+     *
+     * @param id O identificador da sessão ativa.
+     * @param nome O nome da comunidade que o usuário deseja entrar.
+     */
+    public void adicionarComunidade(String id, String nome) {
+        String login = sessaoController.getLoginDaSessao(id);
+        comunidadeController.adicionarComunidade(login, nome);
+    }
+
+    /**
+     * Busca as comunidades em que o usuário informado atua como membro.
+     *
+     * @param login O login do usuário consultado.
+     * @return Uma string contendo a lista formatada de comunidades do usuário.
+     */
+    public String getComunidades(String login) {
+        return comunidadeController.getComunidades(login);
+    }
+
+    /**
+     * Envia uma mensagem global para os membros de uma comunidade.
+     *
+     * @param id O identificador da sessão do remetente.
+     * @param comunidade O nome da comunidade alvo.
+     * @param mensagem O conteúdo a ser transmitido.
+     */
+    public void enviarMensagem(String id, String comunidade, String mensagem) {
+        String loginRemetente = sessaoController.getLoginDaSessao(id);
+        usuarioController.buscarUsuario(loginRemetente);
+        comunidadeController.enviarMensagem(loginRemetente, comunidade, mensagem);
+    }
+
+    /**
+     * Retira e lê a próxima mensagem vinda de uma comunidade da caixa do usuário.
+     *
+     * @param id O identificador da sessão ativa.
+     * @return O conteúdo da mensagem de comunidade.
+     */
+    public String lerMensagem(String id) {
+        String login = sessaoController.getLoginDaSessao(id);
+        return usuarioController.buscarUsuario(login).lerProximaMensagem();
+    }
+
+    /**
+     * Estabelece relação onde o usuário da sessão declara fã-clube por outro usuário (ídolo).
+     *
+     * @param id O identificador da sessão ativa (fã).
+     * @param idolo O login do alvo de idolatria.
+     */
+    public void adicionarIdolo(String id, String idolo) {
+        String fa = sessaoController.getLoginDaSessao(id);
+        usuarioController.adicionarIdolo(fa, idolo);
+    }
+
+    /**
+     * Verifica se o usuário é fã da pessoa informada.
+     *
+     * @param login O login do suposto fã.
+     * @param idolo O login do suposto ídolo.
+     * @return true se a relação for verdadeira.
+     */
+    public boolean ehFa(String login, String idolo) {
+        try { return usuarioController.buscarUsuario(login).ehFa(idolo); } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Retorna a lista de fãs de um usuário.
+     *
+     * @param login O login do usuário base.
+     * @return String formatada "{fã1, fã2...}".
+     */
+    public String getFas(String login) {
+        return "{" + String.join(",", usuarioController.buscarUsuario(login).getFas()) + "}";
+    }
+
+    /**
+     * Adiciona paquera para um usuário e dispara notificação em caso de match mútuo.
+     *
+     * @param id O identificador da sessão ativa.
+     * @param paquera O login da pessoa paquerada.
+     */
+    public void adicionarPaquera(String id, String paquera) {
+        String login = sessaoController.getLoginDaSessao(id);
+        usuarioController.adicionarPaquera(login, paquera);
+    }
+
+    /**
+     * Checa o status de paquera entre os usuários.
+     *
+     * @param id O identificador da sessão ativa.
+     * @param paquera O login da paquera alvo.
+     * @return true se o usuário está paquerando.
+     */
+    public boolean ehPaquera(String id, String paquera) {
+        try {
+            String login = sessaoController.getLoginDaSessao(id);
+            return usuarioController.buscarUsuario(login).ehPaquera(paquera);
+        } catch (Exception e) { return false; }
+    }
+
+    /**
+     * Consulta as pessoas cadastradas como paquera na lista do usuário da sessão atual.
+     *
+     * @param id O identificador da sessão.
+     * @return String com os nomes das paqueras "{...}".
+     */
+    public String getPaqueras(String id) {
+        String login = sessaoController.getLoginDaSessao(id);
+        return "{" + String.join(",", usuarioController.buscarUsuario(login).getPaqueras()) + "}";
+    }
+
+    /**
+     * Efetua o bloqueio de outro perfil.
+     *
+     * @param id O identificador da sessão ativa.
+     * @param inimigo O login de quem sofrerá bloqueio das interações.
+     */
+    public void adicionarInimigo(String id, String inimigo) {
+        String login = sessaoController.getLoginDaSessao(id);
+        usuarioController.adicionarInimigo(login, inimigo);
     }
 }
